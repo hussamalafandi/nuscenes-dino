@@ -10,9 +10,18 @@ from transformers import AutoImageProcessor, AutoModel
 class DinoImageEncoder:
     """Adapts a Dino-style vision backbone for nuScenes camera streams."""
 
-    def __init__(self, model_name: str = "facebook/dinov2-base") -> None:
+    def __init__(self, model_name: str = "facebook/dinov2-base", device: torch.device | str | None = None) -> None:
+        """Load the encoder and place it on CPU or GPU.
+
+        Args:
+            model_name: Hugging Face identifier for the Dino checkpoint.
+            device: Optional torch device or string (e.g., "cuda", "cpu"). If
+                omitted, the encoder chooses CUDA when available.
+        """
+
+        self.device = torch.device(device) if device is not None else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.processor = AutoImageProcessor.from_pretrained(model_name)
-        self.model = AutoModel.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name).to(self.device)
         self.model.eval()
 
     @torch.inference_mode()
@@ -25,7 +34,7 @@ class DinoImageEncoder:
         """
 
         batch: list[Image.Image] = list(images)
-        inputs = self.processor(images=batch, return_tensors="pt")
+        inputs = self.processor(images=batch, return_tensors="pt").to(self.device)
         outputs = self.model(**inputs)
         pooled = outputs.pooler_output if hasattr(outputs, "pooler_output") else outputs.last_hidden_state.mean(dim=1)
         return {

@@ -5,13 +5,17 @@ This repository provides a minimal pipeline for streaming nuScenes sensor data i
 ## Setup
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+# Create and activate a Conda environment (Python 3.12)
+conda create -n nuscenes-dino python=3.12 -y
+conda activate nuscenes-dino
 
-# Install a matching PyTorch build for your platform (CPU-only example shown)
-pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
+# Install PyTorch with GPU acceleration (replace CUDA version if needed)
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia -y
 
-# Install Python dependencies declared in pyproject.toml
+# If you prefer CPU-only builds, install the CPU wheels instead
+# conda install pytorch torchvision torchaudio cpuonly -c pytorch -y
+
+# Install the remaining Python dependencies
 pip install -e .
 ```
 
@@ -25,4 +29,4 @@ Run the example script to iterate over a few samples and encode the camera image
 python examples/run_pipeline.py
 ```
 
-By default the pipeline loads all six cameras and skips lidar/radar to keep the Dino flow fast. Set `include_radar` or `include_lidar` to `True` when constructing `NuScenesPipeline` if you want those modalities alongside the RGB images.
+By default the pipeline loads all six cameras and skips lidar/radar to keep the Dino flow fast. Set `include_radar` or `include_lidar` to `True` when constructing `NuScenesPipeline` if you want those modalities alongside the RGB images. `DinoImageEncoder` will place the model on GPU when available; pass `device="cpu"` or another torch device string if you want to override the default.
