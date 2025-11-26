@@ -15,8 +15,11 @@ conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvi
 # If you prefer CPU-only builds, install the CPU wheels instead
 # conda install pytorch torchvision torchaudio cpuonly -c pytorch -y
 
-# Install the remaining Python dependencies
+# Install the remaining Python dependencies (Transformers >= 4.56 is required for DINOv3)
 pip install -e .
+
+# (Optional) Log into Hugging Face to access gated DINOv3 weights
+# huggingface-cli login
 ```
 
 You also need the [nuScenes dataset](https://www.nuscenes.org/download) extracted locally. Update the `dataroot` in the example script to point at your copy. If you want GPU acceleration, replace the PyTorch line with the wheel URL for your CUDA version from the [official installation guide](https://pytorch.org/get-started/locally/).
@@ -29,4 +32,4 @@ Run the example script to iterate over a few samples and encode the camera image
 python examples/run_pipeline.py
 ```
 
-By default the pipeline loads all six cameras and skips lidar/radar to keep the Dino flow fast. Set `include_radar` or `include_lidar` to `True` when constructing `NuScenesPipeline` if you want those modalities alongside the RGB images. `DinoImageEncoder` will place the model on GPU when available; pass `device="cpu"` or another torch device string if you want to override the default.
+By default the pipeline loads all six cameras and skips lidar/radar to keep the Dino flow fast. Set `include_radar` or `include_lidar` to `True` when constructing `NuScenesPipeline` if you want those modalities alongside the RGB images. `DinoImageEncoder` follows the [official DINOv3 instructions](https://github.com/facebookresearch/dinov3) by loading the Hugging Face checkpoints (default: `facebook/dinov3-convnext-tiny-pretrain-lvd1689m`) and will automatically place the model on GPU when available. Pass `device_map="auto"` (default) to let Transformers shard the model, or set `device="cpu"`/`"cuda"` to force a single device.
