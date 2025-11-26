@@ -7,10 +7,15 @@ This repository provides a minimal pipeline for streaming nuScenes sensor data i
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+
+# Install a matching PyTorch build for your platform (CPU-only example shown)
+pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install Python dependencies declared in pyproject.toml
 pip install -e .
 ```
 
-You also need the [nuScenes dataset](https://www.nuscenes.org/download) extracted locally. Update the `dataroot` in the example script to point at your copy.
+You also need the [nuScenes dataset](https://www.nuscenes.org/download) extracted locally. Update the `dataroot` in the example script to point at your copy. If you want GPU acceleration, replace the PyTorch line with the wheel URL for your CUDA version from the [official installation guide](https://pytorch.org/get-started/locally/).
 
 ## Usage
 

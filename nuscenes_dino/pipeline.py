@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List
 
 from PIL import Image
 from nuscenes.nuscenes import NuScenes
@@ -15,9 +15,9 @@ class SensorBatch:
 
     token: str
     camera_images: Dict[str, Image.Image]
-    radar_points: Optional[Dict[str, RadarPointCloud]] = None
-    lidar_points: Optional[LidarPointCloud] = None
-    boxes: Optional[Dict[str, List[Box]]] = None
+    radar_points: Dict[str, RadarPointCloud] | None = None
+    lidar_points: LidarPointCloud | None = None
+    boxes: Dict[str, List[Box]] | None = None
 
 
 class NuScenesPipeline:
@@ -33,7 +33,7 @@ class NuScenesPipeline:
         self,
         dataroot: str,
         version: str = "v1.0-mini",
-        camera_channels: Optional[List[str]] = None,
+        camera_channels: List[str] | None = None,
         include_radar: bool = False,
         include_lidar: bool = False,
     ) -> None:
@@ -85,7 +85,7 @@ class NuScenesPipeline:
                 radar_path = Path(self.dataroot, radar_data["filename"])
                 radar_points[channel] = RadarPointCloud.from_file(str(radar_path))
 
-        lidar_points_obj: Optional[LidarPointCloud] = None
+        lidar_points_obj: LidarPointCloud | None = None
         if self.include_lidar:
             lidar_token = sample["data"].get("LIDAR_TOP")
             if lidar_token:
