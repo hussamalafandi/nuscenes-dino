@@ -1,6 +1,6 @@
 """Minimal Dino-style image encoder wrapper."""
 
-from typing import Dict, Iterable, List
+from collections.abc import Iterable
 
 import torch
 from PIL import Image
@@ -16,7 +16,7 @@ class DinoImageEncoder:
         self.model.eval()
 
     @torch.inference_mode()
-    def encode(self, images: Iterable[Image.Image]) -> Dict[str, torch.Tensor]:
+    def encode(self, images: Iterable[Image.Image]) -> dict[str, torch.Tensor]:
         """Encode a batch of images and return pooled features.
 
         The return dict matches the signature used by Hugging Face vision models
@@ -24,7 +24,7 @@ class DinoImageEncoder:
         with a language model or downstream decoder.
         """
 
-        batch: List[Image.Image] = list(images)
+        batch: list[Image.Image] = list(images)
         inputs = self.processor(images=batch, return_tensors="pt")
         outputs = self.model(**inputs)
         pooled = outputs.pooler_output if hasattr(outputs, "pooler_output") else outputs.last_hidden_state.mean(dim=1)

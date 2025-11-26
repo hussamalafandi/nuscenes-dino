@@ -1,8 +1,8 @@
 """Data pipeline for preparing nuScenes samples for a vision-language model."""
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List
 
 from PIL import Image
 from nuscenes.nuscenes import NuScenes
@@ -14,10 +14,10 @@ class SensorBatch:
     """Container for a single nuScenes sample with selected sensor modalities."""
 
     token: str
-    camera_images: Dict[str, Image.Image]
-    radar_points: Dict[str, RadarPointCloud] | None = None
+    camera_images: dict[str, Image.Image]
+    radar_points: dict[str, RadarPointCloud] | None = None
     lidar_points: LidarPointCloud | None = None
-    boxes: Dict[str, List[Box]] | None = None
+    boxes: dict[str, list[Box]] | None = None
 
 
 class NuScenesPipeline:
@@ -33,7 +33,7 @@ class NuScenesPipeline:
         self,
         dataroot: str,
         version: str = "v1.0-mini",
-        camera_channels: List[str] | None = None,
+        camera_channels: list[str] | None = None,
         include_radar: bool = False,
         include_lidar: bool = False,
     ) -> None:
@@ -60,9 +60,9 @@ class NuScenesPipeline:
     def _materialize_sample(self, sample_token: str) -> SensorBatch:
         sample = self.nusc.get("sample", sample_token)
 
-        camera_images: Dict[str, Image.Image] = {}
-        radar_points: Dict[str, RadarPointCloud] = {}
-        boxes: Dict[str, List[Box]] = {}
+        camera_images: dict[str, Image.Image] = {}
+        radar_points: dict[str, RadarPointCloud] = {}
+        boxes: dict[str, list[Box]] = {}
 
         for channel in self.camera_channels:
             data_token = sample["data"].get(channel)
@@ -102,7 +102,7 @@ class NuScenesPipeline:
         )
 
     @property
-    def _radar_channels(self) -> List[str]:
+    def _radar_channels(self) -> list[str]:
         return [
             "RADAR_FRONT",
             "RADAR_FRONT_LEFT",
