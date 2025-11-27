@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.data_classes import Box, LidarPointCloud, RadarPointCloud
+from nuscenes.utils.geometry_utils import BoxVisibility
 
 
 @dataclass
@@ -72,8 +73,7 @@ class NuScenesPipeline:
             img_path = Path(self.dataroot, sample_data["filename"])
             with Image.open(img_path) as img:
                 camera_images[channel] = img.convert("RGB")
-
-            box_list, _ = self.nusc.get_sample_data(data_token, box_vis_level=0)
+            _, box_list, _ = self.nusc.get_sample_data(data_token, box_vis_level=BoxVisibility.NONE)
             boxes[channel] = box_list
 
         if self.include_radar:

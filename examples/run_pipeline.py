@@ -8,7 +8,7 @@ from nuscenes_dino import DinoImageEncoder, NuScenesPipeline
 
 
 def main() -> None:
-    dataroot = Path("/data/nuscenes")
+    dataroot = Path("../data/sets/nuscenes")
     pipeline = NuScenesPipeline(dataroot=str(dataroot), version="v1.0-mini", include_radar=False, include_lidar=False)
     encoder = DinoImageEncoder()
 
