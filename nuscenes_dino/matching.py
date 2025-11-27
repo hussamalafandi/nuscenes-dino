@@ -79,18 +79,25 @@ class DinoMatcher:
         grid_h = resized_h // patch_size
         grid_w = resized_w // patch_size
         patch_tokens = grid_h * grid_w
-        if tokens.shape[1] < patch_tokens:
+        num_register_tokens = getattr(self.encoder.model.config, "num_register_tokens", 0)
+        cls_tokens = 1 if tokens.shape[1] > (patch_tokens + num_register_tokens) else 0
+
+        start = cls_tokens
+        end = tokens.shape[1] - num_register_tokens if num_register_tokens else tokens.shape[1]
+        patch_seq = tokens[:, start:end, :]
+
+        if patch_seq.shape[1] < patch_tokens:
             msg = (
                 "Model output does not contain enough patch tokens to fill the grid. "
-                f"Got {tokens.shape[1]}, expected {patch_tokens}."
+                f"Got {patch_seq.shape[1]}, expected {patch_tokens}."
             )
             raise ValueError(msg)
 
-        # Drop any leading special tokens (e.g., CLS or register tokens) and keep the
-        # most recent patch tokens so the reshape corresponds to the image grid.
-        tokens = tokens[:, -patch_tokens:, :]
+        # Truncate any extra tokens (e.g., masked modeling heads) after removing special
+        # tokens so that reshaping preserves spatial ordering.
+        patch_seq = patch_seq[:, :patch_tokens, :]
 
-        batch_embeddings = tokens.reshape(tokens.shape[0], grid_h, grid_w, -1)
+        batch_embeddings = patch_seq.reshape(patch_seq.shape[0], grid_h, grid_w, -1)
 
         dense_maps: list[DenseFeatureMap] = []
         for emb, image in zip(batch_embeddings, batch, strict=False):
