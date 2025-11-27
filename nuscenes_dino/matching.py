@@ -63,21 +63,41 @@ class DinoMatcher:
         outputs = self.encoder.model(**inputs)
         tokens = outputs.last_hidden_state
 
-        grid = int(tokens.shape[1] ** 0.5)
-        if grid * grid != tokens.shape[1]:
-            msg = "Model output is not a square grid; cannot reshape into dense map."
+        resized_h, resized_w = inputs["pixel_values"].shape[-2:]
+        patch_size = getattr(self.encoder.model.config, "patch_size", None)
+        if patch_size is None:
+            grid_guess = int(tokens.shape[1] ** 0.5)
+            patch_size = resized_h // max(grid_guess, 1)
+
+        if resized_h % patch_size != 0 or resized_w % patch_size != 0:
+            msg = (
+                "Resized image dimensions are not divisible by the patch size; "
+                "cannot compute grid shape."
+            )
             raise ValueError(msg)
 
-        batch_embeddings = tokens[:, : grid * grid, :].reshape(tokens.shape[0], grid, grid, -1)
-        resized_h, resized_w = inputs["pixel_values"].shape[-2:]
-        patch_size = getattr(self.encoder.model.config, "patch_size", resized_h // grid)
+        grid_h = resized_h // patch_size
+        grid_w = resized_w // patch_size
+        patch_tokens = grid_h * grid_w
+        if tokens.shape[1] < patch_tokens:
+            msg = (
+                "Model output does not contain enough patch tokens to fill the grid. "
+                f"Got {tokens.shape[1]}, expected {patch_tokens}."
+            )
+            raise ValueError(msg)
+
+        # Drop any leading special tokens (e.g., CLS or register tokens) and keep the
+        # most recent patch tokens so the reshape corresponds to the image grid.
+        tokens = tokens[:, -patch_tokens:, :]
+
+        batch_embeddings = tokens.reshape(tokens.shape[0], grid_h, grid_w, -1)
 
         dense_maps: list[DenseFeatureMap] = []
         for emb, image in zip(batch_embeddings, batch, strict=False):
             dense_maps.append(
                 DenseFeatureMap(
                     embeddings=emb.detach().cpu(),
-                    grid_size=(grid, grid),
+                    grid_size=(grid_h, grid_w),
                     patch_size=patch_size,
                     original_size=image.size,
                     resized_size=(resized_h, resized_w),
