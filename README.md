@@ -32,4 +32,11 @@ Run the example script to iterate over a few samples and encode the camera image
 python examples/run_pipeline.py
 ```
 
+If you prefer an interactive walkthrough, open the accompanying notebook with Jupyter or VS Code:
+
+```bash
+pip install jupyterlab  # if you don't already have a notebook runner
+jupyter lab examples/notebooks/nuscenes_dino_usage.ipynb
+```
+
 By default the pipeline loads all six cameras and skips lidar/radar to keep the Dino flow fast. Set `include_radar` or `include_lidar` to `True` when constructing `NuScenesPipeline` if you want those modalities alongside the RGB images. `DinoImageEncoder` follows the [official DINOv3 instructions](https://github.com/facebookresearch/dinov3) by loading the Hugging Face checkpoints (default: `facebook/dinov3-convnext-tiny-pretrain-lvd1689m`) and will automatically place the model on GPU when available. Pass `device_map="auto"` (default) to let Transformers shard the model, or set `device="cpu"`/`"cuda"` to force a single device.
