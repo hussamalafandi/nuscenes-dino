@@ -63,21 +63,48 @@ class DinoMatcher:
         outputs = self.encoder.model(**inputs)
         tokens = outputs.last_hidden_state
 
-        grid = int(tokens.shape[1] ** 0.5)
-        if grid * grid != tokens.shape[1]:
-            msg = "Model output is not a square grid; cannot reshape into dense map."
+        resized_h, resized_w = inputs["pixel_values"].shape[-2:]
+        patch_size = getattr(self.encoder.model.config, "patch_size", None)
+        if patch_size is None:
+            grid_guess = int(tokens.shape[1] ** 0.5)
+            patch_size = resized_h // max(grid_guess, 1)
+
+        if resized_h % patch_size != 0 or resized_w % patch_size != 0:
+            msg = (
+                "Resized image dimensions are not divisible by the patch size; "
+                "cannot compute grid shape."
+            )
             raise ValueError(msg)
 
-        batch_embeddings = tokens[:, : grid * grid, :].reshape(tokens.shape[0], grid, grid, -1)
-        resized_h, resized_w = inputs["pixel_values"].shape[-2:]
-        patch_size = getattr(self.encoder.model.config, "patch_size", resized_h // grid)
+        grid_h = resized_h // patch_size
+        grid_w = resized_w // patch_size
+        patch_tokens = grid_h * grid_w
+        num_register_tokens = getattr(self.encoder.model.config, "num_register_tokens", 0)
+        cls_tokens = 1 if tokens.shape[1] > (patch_tokens + num_register_tokens) else 0
+
+        start = cls_tokens
+        end = tokens.shape[1] - num_register_tokens if num_register_tokens else tokens.shape[1]
+        patch_seq = tokens[:, start:end, :]
+
+        if patch_seq.shape[1] < patch_tokens:
+            msg = (
+                "Model output does not contain enough patch tokens to fill the grid. "
+                f"Got {patch_seq.shape[1]}, expected {patch_tokens}."
+            )
+            raise ValueError(msg)
+
+        # Truncate any extra tokens (e.g., masked modeling heads) after removing special
+        # tokens so that reshaping preserves spatial ordering.
+        patch_seq = patch_seq[:, :patch_tokens, :]
+
+        batch_embeddings = patch_seq.reshape(patch_seq.shape[0], grid_h, grid_w, -1)
 
         dense_maps: list[DenseFeatureMap] = []
         for emb, image in zip(batch_embeddings, batch, strict=False):
             dense_maps.append(
                 DenseFeatureMap(
                     embeddings=emb.detach().cpu(),
-                    grid_size=(grid, grid),
+                    grid_size=(grid_h, grid_w),
                     patch_size=patch_size,
                     original_size=image.size,
                     resized_size=(resized_h, resized_w),
